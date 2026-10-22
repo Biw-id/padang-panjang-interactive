@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import gsap from 'gsap';
 
 interface StoryCube3DProps {
   stage: number; // 1, 2, 3, 4
@@ -8,46 +9,60 @@ interface StoryCube3DProps {
 
 export const StoryCube3D: React.FC<StoryCube3DProps> = ({ stage, className = '' }) => {
   const mountRef = useRef<HTMLDivElement>(null);
-  const targetRotationRef = useRef({ x: 0, y: 0, z: 0 });
-  const mouseRef = useRef({ x: 0, y: 0 });
-  const isDraggingRef = useRef(false);
-  const prevPointerRef = useRef({ x: 0, y: 0 });
-  const userRotationRef = useRef({ x: 0, y: 0 });
+  const mouseRef = useRef({ x: 0, y: 0, targetX: 0, targetY: 0 });
+  const spinYRef = useRef({ val: 0 });
+  const frontMatRef = useRef<THREE.MeshStandardMaterial | null>(null);
+  const texturesRef = useRef<THREE.Texture[]>([]);
+  const currentStageRef = useRef(stage);
 
-  // Update target rotation when stage changes
+  // When stage changes: Spin 360 degrees and swap front image halfway through the spin
   useEffect(() => {
-    switch (stage) {
-      case 1:
-        targetRotationRef.current = { x: 0.1, y: 0.2, z: 0 };
-        break;
-      case 2:
-        // 90 deg Y rotation to side face
-        targetRotationRef.current = { x: -0.1, y: Math.PI / 2 + 0.15, z: 0.05 };
-        break;
-      case 3:
-        // Vertical flip to top face
-        targetRotationRef.current = { x: -Math.PI / 2 + 0.2, y: Math.PI / 4, z: 0 };
-        break;
-      case 4:
-        // 180 deg rotation to back face
-        targetRotationRef.current = { x: 0.2, y: Math.PI + 0.25, z: -0.1 };
-        break;
-      default:
-        targetRotationRef.current = { x: 0, y: 0, z: 0 };
-    }
+    if (stage === currentStageRef.current) return;
+    const prev = currentStageRef.current;
+    currentStageRef.current = stage;
+
+    const direction = stage > prev ? 1 : -1;
+    const startVal = spinYRef.current.val;
+    const targetVal = startVal + Math.PI * 2 * direction;
+
+    let swapped = false;
+    gsap.killTweensOf(spinYRef.current);
+    gsap.to(spinYRef.current, {
+      val: targetVal,
+      duration: 1.15,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        // Swap texture at halfway (180 deg) when front face is turned away from camera
+        const progress = Math.abs((spinYRef.current.val - startVal) / (targetVal - startVal));
+        if (!swapped && progress >= 0.5) {
+          if (frontMatRef.current && texturesRef.current[stage - 1]) {
+            frontMatRef.current.map = texturesRef.current[stage - 1];
+            frontMatRef.current.needsUpdate = true;
+          }
+          swapped = true;
+        }
+      },
+      onComplete: () => {
+        // Guarantee correct texture assignment upon completion
+        if (frontMatRef.current && texturesRef.current[stage - 1]) {
+          frontMatRef.current.map = texturesRef.current[stage - 1];
+          frontMatRef.current.needsUpdate = true;
+        }
+      },
+    });
   }, [stage]);
 
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
 
-    const width = mount.clientWidth || 450;
-    const height = mount.clientHeight || 450;
+    const width = mount.clientWidth || 560;
+    const height = mount.clientHeight || 350;
 
     // 1. Scene, Camera, Renderer
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.set(0, 0, 8.5);
+    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
+    camera.position.set(0, 0, 7.8);
 
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
@@ -56,125 +71,133 @@ export const StoryCube3D: React.FC<StoryCube3DProps> = ({ stage, className = '' 
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(width, height);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
     mount.innerHTML = '';
     mount.appendChild(renderer.domElement);
 
-    // 2. Texture Loader for the 4 Story Images
+    // 2. Preload 4 Story Landscape Images
     const loader = new THREE.TextureLoader();
-    const textures = [
-      loader.load('/media_webp/01_hero_landscape/hero_singgalang_tandikat_panorama.webp'),
-      loader.load('/media_webp/01_hero_landscape/hero_pdikm_lanskap_hutan.webp'),
-      loader.load('/media_webp/01_hero_landscape/hero_gerbang_perbatasan_padang_panjang.webp'),
-      loader.load('/media_webp/01_hero_landscape/hero_jembatan_kembar_padang_panjang.webp'),
-      loader.load('/media_webp/01_hero_landscape/hero_singgalang_tandikat_panorama.webp'),
-      loader.load('/media_webp/01_hero_landscape/hero_pdikm_lanskap_hutan.webp'),
+    const urls = [
+      '/media_webp/01_hero_landscape/hero_singgalang_tandikat_panorama.webp',
+      '/media_webp/01_hero_landscape/hero_pdikm_lanskap_hutan.webp',
+      '/media_webp/01_hero_landscape/hero_gerbang_perbatasan_padang_panjang.webp',
+      '/media_webp/01_hero_landscape/hero_jembatan_kembar_padang_panjang.webp',
     ];
 
-    textures.forEach((tex) => {
+    texturesRef.current = urls.map((url) => {
+      const tex = loader.load(url);
       tex.colorSpace = THREE.SRGBColorSpace;
+      tex.generateMipmaps = true;
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      return tex;
     });
 
-    // Materials for the 6 faces (Right, Left, Top, Bottom, Front, Back)
-    const materials = textures.map(
-      (tex) =>
-        new THREE.MeshStandardMaterial({
-          map: tex,
-          roughness: 0.25,
-          metalness: 0.1,
-        })
-    );
+    // 3. Materials:
+    // HANYA BAGIAN DEPAN (+Z, index 4) yang ada gambarnya.
+    // Sisa 5 sisi (Right, Left, Top, Bottom, Back) abu-abu solid matte.
+    const greySideMaterial = new THREE.MeshStandardMaterial({
+      color: 0x222630, // Solid matte slate graphite
+      roughness: 0.65,
+      metalness: 0.15,
+    });
 
-    // 3. Cube Geometry & Group
-    const cubeGroup = new THREE.Group();
-    const cubeSize = 3.6;
-    const geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
-    const cubeMesh = new THREE.Mesh(geometry, materials);
-    cubeGroup.add(cubeMesh);
+    const frontMaterial = new THREE.MeshStandardMaterial({
+      map: texturesRef.current[stage - 1],
+      roughness: 0.25,
+      metalness: 0.05,
+    });
+    frontMatRef.current = frontMaterial;
 
-    // 4. Glowing Neon Edges (Marawa Gold & Crimson)
+    // Box faces order:
+    // 0: +X (Right)
+    // 1: -X (Left)
+    // 2: +Y (Top)
+    // 3: -Y (Bottom)
+    // 4: +Z (Front) -> ONLY this face has the photo!
+    // 5: -Z (Back)
+    const materials = [
+      greySideMaterial, // Right (abu-abu)
+      greySideMaterial, // Left (abu-abu)
+      greySideMaterial, // Top (abu-abu)
+      greySideMaterial, // Bottom (abu-abu)
+      frontMaterial,    // Front (GAMBAR LANSKAP KISAH)
+      greySideMaterial, // Back (abu-abu)
+    ];
+
+    // 4. BALOK GEOMETRY (Bentuk Balok 16:10 aspect ratio: lebar 5.2, tinggi 3.25, tebal 0.45)
+    const balokGroup = new THREE.Group();
+    const balokWidth = 5.2;
+    const balokHeight = 3.25;
+    const balokDepth = 0.45;
+
+    const geometry = new THREE.BoxGeometry(balokWidth, balokHeight, balokDepth);
+    const balokMesh = new THREE.Mesh(geometry, materials);
+    balokGroup.add(balokMesh);
+
+    // Glowing subtle metallic edge wireframe (Marawa Gold accent)
     const edges = new THREE.EdgesGeometry(geometry);
     const edgeMat = new THREE.LineBasicMaterial({
       color: 0xF59E0B, // Marawa Gold
-      linewidth: 2,
+      linewidth: 1.5,
+      transparent: true,
+      opacity: 0.55,
     });
     const edgeLines = new THREE.LineSegments(edges, edgeMat);
-    cubeGroup.add(edgeLines);
+    balokGroup.add(edgeLines);
 
-    // 5. Outer Ambient Glowing Cage
-    const cageGeo = new THREE.BoxGeometry(cubeSize * 1.08, cubeSize * 1.08, cubeSize * 1.08);
-    const cageEdges = new THREE.EdgesGeometry(cageGeo);
-    const cageMat = new THREE.LineBasicMaterial({
-      color: 0xDC2626, // Marawa Crimson
+    // Subtle soft back shadow plate behind the balok
+    const backShadowGeo = new THREE.PlaneGeometry(balokWidth * 1.05, balokHeight * 1.05);
+    const backShadowMat = new THREE.MeshBasicMaterial({
+      color: 0xDC2626, // Crimson glow aura
       transparent: true,
-      opacity: 0.4,
+      opacity: 0.12,
     });
-    const cageLines = new THREE.LineSegments(cageEdges, cageMat);
-    cubeGroup.add(cageLines);
+    const backShadow = new THREE.Mesh(backShadowGeo, backShadowMat);
+    backShadow.position.z = -balokDepth / 2 - 0.06;
+    balokGroup.add(backShadow);
 
-    scene.add(cubeGroup);
+    scene.add(balokGroup);
 
-    // 6. Dramatic Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
+    // 5. Lighting Setup
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
     scene.add(ambientLight);
 
-    const dirLight1 = new THREE.DirectionalLight(0xfff5e6, 2.2);
-    dirLight1.position.set(5, 8, 7);
-    scene.add(dirLight1);
+    const keyLight = new THREE.DirectionalLight(0xfff8ee, 2.0);
+    keyLight.position.set(5, 6, 7);
+    scene.add(keyLight);
 
-    const dirLight2 = new THREE.DirectionalLight(0xDC2626, 1.2);
-    dirLight2.position.set(-6, -4, -5);
-    scene.add(dirLight2);
+    const rimLight = new THREE.DirectionalLight(0xF59E0B, 1.0);
+    rimLight.position.set(-6, -3, 4);
+    scene.add(rimLight);
 
-    // 7. Cursor Move & Drag Gestures
+    // 6. CURSOR TRACKING (HANYA MENGIKUTI CURSOR, TIDAK BISA DI-DRAG)
     const onMouseMove = (e: MouseEvent) => {
-      const rect = mount.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
-      mouseRef.current = { x: x * 0.4, y: y * 0.3 };
+      // Calculate normalized mouse coordinates (-1 to 1) relative to window
+      const normX = (e.clientX / window.innerWidth) * 2 - 1;
+      const normY = -(e.clientY / window.innerHeight) * 2 + 1;
+
+      mouseRef.current.targetX = normX;
+      mouseRef.current.targetY = normY;
     };
-
-    const dom = renderer.domElement;
-    const onPointerDown = (e: PointerEvent) => {
-      isDraggingRef.current = true;
-      prevPointerRef.current = { x: e.clientX, y: e.clientY };
-      dom.setPointerCapture(e.pointerId);
-    };
-
-    const onPointerMove = (e: PointerEvent) => {
-      if (!isDraggingRef.current) return;
-      const deltaX = e.clientX - prevPointerRef.current.x;
-      const deltaY = e.clientY - prevPointerRef.current.y;
-
-      userRotationRef.current.y += deltaX * 0.01;
-      userRotationRef.current.x += deltaY * 0.01;
-
-      prevPointerRef.current = { x: e.clientX, y: e.clientY };
-    };
-
-    const onPointerUp = (e: PointerEvent) => {
-      isDraggingRef.current = false;
-      try {
-        dom.releasePointerCapture(e.pointerId);
-      } catch (_) {}
-    };
-
     window.addEventListener('mousemove', onMouseMove);
-    dom.addEventListener('pointerdown', onPointerDown);
-    dom.addEventListener('pointermove', onPointerMove);
-    dom.addEventListener('pointerup', onPointerUp);
 
-    // 8. Resize Handler
-    const handleResize = () => {
-      if (!mount) return;
-      const w = mount.clientWidth;
-      const h = mount.clientHeight;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
-    };
-    window.addEventListener('resize', handleResize);
+    // 7. Responsive Resize Observer
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const w = entry.contentRect.width;
+        const h = entry.contentRect.height;
+        if (w > 0 && h > 0) {
+          camera.aspect = w / h;
+          camera.updateProjectionMatrix();
+          renderer.setSize(w, h);
+        }
+      }
+    });
+    resizeObserver.observe(mount);
 
-    // 9. Animation Loop with Lerp Smoothing
+    // 8. Render Loop with Smooth Physics
     let animId: number;
     const clock = new THREE.Clock();
 
@@ -182,54 +205,54 @@ export const StoryCube3D: React.FC<StoryCube3DProps> = ({ stage, className = '' 
       animId = requestAnimationFrame(animate);
       const elapsed = clock.getElapsedTime();
 
-      // Desired rotation = stage target + cursor parallax tilt + user manual drag
-      const desiredX =
-        targetRotationRef.current.x + mouseRef.current.y + userRotationRef.current.x;
-      const desiredY =
-        targetRotationRef.current.y + mouseRef.current.x + userRotationRef.current.y;
-      const desiredZ = targetRotationRef.current.z;
+      // Smooth damped lerp towards cursor target
+      mouseRef.current.x = THREE.MathUtils.lerp(
+        mouseRef.current.x,
+        mouseRef.current.targetX,
+        0.05
+      );
+      mouseRef.current.y = THREE.MathUtils.lerp(
+        mouseRef.current.y,
+        mouseRef.current.targetY,
+        0.05
+      );
 
-      // Smooth interpolation
-      cubeGroup.rotation.x = THREE.MathUtils.lerp(cubeGroup.rotation.x, desiredX, 0.08);
-      cubeGroup.rotation.y = THREE.MathUtils.lerp(cubeGroup.rotation.y, desiredY, 0.08);
-      cubeGroup.rotation.z = THREE.MathUtils.lerp(cubeGroup.rotation.z, desiredZ, 0.08);
+      // Balok bergerak dan miring mengikuti arah kursor:
+      // - Rotasi Y miring mengikuti kursor X + putaran spin stage
+      // - Rotasi X miring mengikuti kursor Y
+      balokGroup.rotation.y = spinYRef.current.val + mouseRef.current.x * 0.35;
+      balokGroup.rotation.x = -mouseRef.current.y * 0.28;
+      balokGroup.rotation.z = mouseRef.current.x * 0.05;
 
-      // Gentle floating levitation
-      cubeGroup.position.y = Math.sin(elapsed * 1.5) * 0.15;
-
-      // Subtle pulse on outer cage lines
-      cageLines.rotation.y = -elapsed * 0.1;
-      cageLines.rotation.x = Math.sin(elapsed * 0.5) * 0.1;
+      // Balok bergeser posisi halus mengikuti kursor (parallax displacement)
+      balokGroup.position.x = mouseRef.current.x * 0.35;
+      balokGroup.position.y = mouseRef.current.y * 0.25 + Math.sin(elapsed * 1.4) * 0.07;
 
       renderer.render(scene, camera);
     };
-
     animate();
 
     return () => {
       window.removeEventListener('mousemove', onMouseMove);
-      dom.removeEventListener('pointerdown', onPointerDown);
-      dom.removeEventListener('pointermove', onPointerMove);
-      dom.removeEventListener('pointerup', onPointerUp);
-      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
       cancelAnimationFrame(animId);
       renderer.dispose();
       geometry.dispose();
       edges.dispose();
       edgeMat.dispose();
-      cageGeo.dispose();
-      cageEdges.dispose();
-      cageMat.dispose();
-      materials.forEach((m) => m.dispose());
-      textures.forEach((t) => t.dispose());
+      backShadowGeo.dispose();
+      backShadowMat.dispose();
+      greySideMaterial.dispose();
+      frontMaterial.dispose();
+      texturesRef.current.forEach((t) => t.dispose());
     };
   }, []);
 
   return (
     <div
       ref={mountRef}
-      className={`relative cursor-grab active:cursor-grabbing select-none ${className}`}
-      title="Putar kubus 3D untuk melihat seluruh sisi lanskap"
+      className={`relative select-none pointer-events-none ${className}`}
+      aria-hidden="true"
     />
   );
 };

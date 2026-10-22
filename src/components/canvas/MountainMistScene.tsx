@@ -288,8 +288,7 @@ export const MountainMistScene: React.FC<MountainMistSceneProps> = ({
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-0 overflow-hidden cursor-grab active:cursor-grabbing select-none"
-      title="Klik dan seret untuk memutar 3D Gonjong 360°"
+      className="fixed inset-0 z-0 overflow-hidden select-none pointer-events-none"
     />
   );
 };
