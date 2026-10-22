@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Production build output
+dist/
+dist-ssr/
+
+# Environment files
+.env
+.env.*
+!.env.example
+*.local
+
+# Editor & System files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Master uncompressed raw media archive (101 MB)
+# The web app uses optimized WebP in public/media_webp (7.8 MB)
+padang-panjang-media/media/
