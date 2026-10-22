@@ -7,7 +7,7 @@ export const HeritageRackRailway: React.FC = () => {
   const { heritageAndHistory } = siteContent;
 
   return (
-    <section id="sejarah" className="relative z-10 py-28 px-4 sm:px-8 border-b border-white/5 bg-marawa-itam">
+    <section id="sejarah" className="relative z-10 py-28 px-4 sm:px-8 border-b border-white/10 bg-black/35 backdrop-blur-md">
       <div className="max-w-7xl mx-auto">
         {/* Header with Integrated 3D Cogwheel Element */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center mb-16">

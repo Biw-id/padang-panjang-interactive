@@ -6,7 +6,7 @@ export const CultureShowcase: React.FC = () => {
   const { cultureAndTradition } = siteContent;
 
   return (
-    <section id="budaya" className="relative z-10 py-28 px-4 sm:px-8 border-b border-white/5 bg-marawa-itam">
+    <section id="budaya" className="relative z-10 py-28 px-4 sm:px-8 border-b border-white/10 bg-black/35 backdrop-blur-md">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="max-w-3xl mb-16">

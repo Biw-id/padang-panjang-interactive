@@ -14,7 +14,7 @@ export const DestinationsGrid: React.FC = () => {
     : destinations.filter((d) => d.category.includes(activeCategory));
 
   return (
-    <section id="destinasi" className="relative z-10 py-28 px-4 sm:px-8 border-b border-white/5 bg-marawa-itam/95">
+    <section id="destinasi" className="relative z-10 py-28 px-4 sm:px-8 border-b border-white/10 bg-black/40 backdrop-blur-md">
       <div className="max-w-7xl mx-auto">
         {/* Header and Filter HUD */}
         <div className="flex flex-col md:flex-row items-baseline justify-between mb-12 gap-6">

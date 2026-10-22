@@ -14,7 +14,7 @@ export const QuickStatsHUD: React.FC = () => {
   ];
 
   return (
-    <section className="relative z-10 py-20 px-4 sm:px-8 border-y border-white/5 bg-marawa-itam/90 backdrop-blur-sm">
+    <section className="relative z-10 py-20 px-4 sm:px-8 border-y border-white/10 bg-black/35 backdrop-blur-md">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row items-baseline justify-between mb-12 gap-4">
           <div>

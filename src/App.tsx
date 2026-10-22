@@ -57,7 +57,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-marawa-itam text-kabut-50 selection:bg-marawa-sirah selection:text-white cursor-default">
+    <div className="relative min-h-screen bg-transparent text-kabut-50 selection:bg-marawa-sirah selection:text-white cursor-default">
       {/* Onboarding Audio & Preloader Gate */}
       {!hasEntered && <AudioGateModal onEnter={handleEnterExperience} />}
 

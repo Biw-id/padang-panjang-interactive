@@ -7,7 +7,7 @@ export const GastronomyHaven: React.FC = () => {
   const { gastronomy } = siteContent;
 
   return (
-    <section id="kuliner" className="relative z-10 py-28 px-4 sm:px-8 border-b border-white/5 bg-marawa-itam/90">
+    <section id="kuliner" className="relative z-10 py-28 px-4 sm:px-8 border-b border-white/10 bg-black/40 backdrop-blur-md">
       <div className="max-w-7xl mx-auto">
         {/* Header with Integrated 3D Steaming Pedestal */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center mb-16">

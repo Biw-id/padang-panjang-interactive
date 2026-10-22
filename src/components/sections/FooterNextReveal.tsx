@@ -11,7 +11,7 @@ export const FooterNextReveal: React.FC<FooterNextRevealProps> = ({ onScrollToTo
   const { siteMeta } = siteContent;
 
   return (
-    <footer className="relative z-10 pt-24 pb-16 px-4 sm:px-8 bg-black text-kabut-50 border-t border-white/10">
+    <footer className="relative z-10 pt-24 pb-16 px-4 sm:px-8 bg-black/55 backdrop-blur-md text-kabut-50 border-t border-white/10">
       <div className="max-w-7xl mx-auto">
         {/* Next Page / Return to Top Reveal Gate */}
         <div className="text-center py-16 mb-20 border-b border-white/10">

@@ -4,11 +4,11 @@
 
 @layer base {
   :root, [data-theme="dark"] {
-    --bg-primary: #121316;
-    --bg-surface: #18191E;
-    --bg-card: rgba(24, 25, 30, 0.75);
-    --border-color: rgba(255, 255, 255, 0.08);
-    --border-highlight: rgba(255, 255, 255, 0.18);
+    --bg-primary: #0e1014;
+    --bg-surface: #14171d;
+    --bg-card: rgba(18, 20, 26, 0.55);
+    --border-color: rgba(255, 255, 255, 0.1);
+    --border-highlight: rgba(255, 255, 255, 0.22);
     --text-primary: #F8FAFC;
     --text-secondary: #94A3B8;
     --text-muted: #64748B;

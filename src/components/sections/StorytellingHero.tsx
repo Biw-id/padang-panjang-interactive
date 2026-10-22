@@ -156,10 +156,10 @@ export const StorytellingHero: React.FC = () => {
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-screen overflow-hidden bg-marawa-itam text-white flex items-center justify-center select-none"
+      className="relative w-full h-screen overflow-hidden bg-transparent text-white flex items-center justify-center select-none"
     >
-      {/* Background Subtle Gradient & Grid Texture */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-marawa-sirah/10 via-marawa-itam to-marawa-itam pointer-events-none" />
+      {/* Background Subtle Translucent Gradient & Grid Texture */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-marawa-sirah/10 via-transparent to-black/20 pointer-events-none" />
       <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
 
       {/* Main Content Area */}
