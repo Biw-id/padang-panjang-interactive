@@ -17,20 +17,23 @@ export const StoryCube3D: React.FC<StoryCube3DProps> = ({ stage, className = '' 
   const currentStageRef = useRef(stage);
 
   // When stage changes: Spin 360 degrees and swap front image halfway through the spin
+  // Target rotation ALWAYS resolves to an exact multiple of 2 * PI so front face directly faces camera
   useEffect(() => {
     if (stage === currentStageRef.current) return;
     const prev = currentStageRef.current;
     currentStageRef.current = stage;
 
     const direction = stage > prev ? 1 : -1;
-    const startVal = spinYRef.current.val;
-    const targetVal = startVal + Math.PI * 2 * direction;
+    const currentRot = spinYRef.current.val;
+    const baseMult = Math.round(currentRot / (Math.PI * 2));
+    const targetVal = (baseMult + direction) * Math.PI * 2;
+    const startVal = baseMult * Math.PI * 2;
 
     let swapped = false;
     gsap.killTweensOf(spinYRef.current);
     gsap.to(spinYRef.current, {
       val: targetVal,
-      duration: 1.15,
+      duration: 1.1,
       ease: 'power2.inOut',
       onUpdate: () => {
         // Swap texture at halfway (180 deg) when front face is turned away from camera
@@ -44,7 +47,8 @@ export const StoryCube3D: React.FC<StoryCube3DProps> = ({ stage, className = '' 
         }
       },
       onComplete: () => {
-        // Guarantee correct texture assignment upon completion
+        // Guarantee exact facing angle (exact multiple of 2 * PI) and texture update
+        spinYRef.current.val = targetVal;
         if (frontMatRef.current && texturesRef.current[stage - 1]) {
           frontMatRef.current.map = texturesRef.current[stage - 1];
           frontMatRef.current.needsUpdate = true;
@@ -57,13 +61,15 @@ export const StoryCube3D: React.FC<StoryCube3DProps> = ({ stage, className = '' 
     const mount = mountRef.current;
     if (!mount) return;
 
-    const width = mount.clientWidth || 650;
-    const height = mount.clientHeight || 410;
+    const isMobile = window.innerWidth < 1024;
+    const width = mount.clientWidth || (isMobile ? 320 : 650);
+    const height = mount.clientHeight || (isMobile ? 200 : 410);
 
     // 1. Scene, Camera, Renderer
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-    camera.position.set(0, 0, 7.2);
+    // Calibrated FOV and camera distance: on mobile slightly farther back (8.2) to frame the balok cleanly
+    const camera = new THREE.PerspectiveCamera(isMobile ? 42 : 40, width / height, 0.1, 100);
+    camera.position.set(0, 0, isMobile ? 8.2 : 7.2);
 
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
@@ -161,10 +167,10 @@ export const StoryCube3D: React.FC<StoryCube3DProps> = ({ stage, className = '' 
     scene.add(balokGroup);
 
     // 5. Lighting Setup (Accentuates the rounded beveled edges)
-    const ambientLight = new THREE.AmbientLight(0xffffff, 2.0);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 2.2);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xfff8ee, 2.4);
+    const keyLight = new THREE.DirectionalLight(0xfff8ee, 2.5);
     keyLight.position.set(5, 6, 7);
     scene.add(keyLight);
 
@@ -176,8 +182,9 @@ export const StoryCube3D: React.FC<StoryCube3DProps> = ({ stage, className = '' 
     topBevelLight.position.set(0, 6, 3);
     scene.add(topBevelLight);
 
-    // 6. CURSOR TRACKING (HANYA MENGIKUTI CURSOR, TIDAK BISA DI-DRAG)
+    // 6. CURSOR TRACKING (DESKTOP ONLY, HANYA MENGIKUTI CURSOR, TIDAK BISA DI-DRAG)
     const onMouseMove = (e: MouseEvent) => {
+      if (window.innerWidth < 1024) return;
       const normX = (e.clientX / window.innerWidth) * 2 - 1;
       const normY = -(e.clientY / window.innerHeight) * 2 + 1;
 
@@ -192,6 +199,9 @@ export const StoryCube3D: React.FC<StoryCube3DProps> = ({ stage, className = '' 
         const w = entry.contentRect.width;
         const h = entry.contentRect.height;
         if (w > 0 && h > 0) {
+          const mobileNow = window.innerWidth < 1024;
+          camera.fov = mobileNow ? 42 : 40;
+          camera.position.z = mobileNow ? 8.2 : 7.2;
           camera.aspect = w / h;
           camera.updateProjectionMatrix();
           renderer.setSize(w, h);
@@ -207,29 +217,38 @@ export const StoryCube3D: React.FC<StoryCube3DProps> = ({ stage, className = '' 
     const animate = () => {
       animId = requestAnimationFrame(animate);
       const elapsed = clock.getElapsedTime();
+      const mobile = window.innerWidth < 1024;
 
-      // Smooth damped lerp towards cursor target
-      mouseRef.current.x = THREE.MathUtils.lerp(
-        mouseRef.current.x,
-        mouseRef.current.targetX,
-        0.05
-      );
-      mouseRef.current.y = THREE.MathUtils.lerp(
-        mouseRef.current.y,
-        mouseRef.current.targetY,
-        0.05
-      );
+      if (mobile) {
+        // ON MOBILE: Objek SELALU MENGHADAP LAYAR secara langsung dan tegak (zero tilt)
+        // Gambar di sisi depan (+Z) tegak lurus dan menghadap penuh ke arah pandang pengguna
+        balokGroup.rotation.y = spinYRef.current.val;
+        balokGroup.rotation.x = 0;
+        balokGroup.rotation.z = 0;
+        balokGroup.position.x = 0;
+        balokGroup.position.y = Math.sin(elapsed * 1.5) * 0.05;
+      } else {
+        // ON DESKTOP: Smooth damped lerp towards cursor target
+        mouseRef.current.x = THREE.MathUtils.lerp(
+          mouseRef.current.x,
+          mouseRef.current.targetX,
+          0.05
+        );
+        mouseRef.current.y = THREE.MathUtils.lerp(
+          mouseRef.current.y,
+          mouseRef.current.targetY,
+          0.05
+        );
 
-      // Balok bergerak dan miring mengikuti arah kursor:
-      // - Rotasi Y miring mengikuti kursor X + putaran spin stage
-      // - Rotasi X miring mengikuti kursor Y
-      balokGroup.rotation.y = spinYRef.current.val + mouseRef.current.x * 0.35;
-      balokGroup.rotation.x = -mouseRef.current.y * 0.28;
-      balokGroup.rotation.z = mouseRef.current.x * 0.05;
+        // Balok bergerak dan miring mengikuti arah kursor
+        balokGroup.rotation.y = spinYRef.current.val + mouseRef.current.x * 0.35;
+        balokGroup.rotation.x = -mouseRef.current.y * 0.28;
+        balokGroup.rotation.z = mouseRef.current.x * 0.05;
 
-      // Balok bergeser posisi halus mengikuti kursor (parallax displacement)
-      balokGroup.position.x = mouseRef.current.x * 0.35;
-      balokGroup.position.y = mouseRef.current.y * 0.25 + Math.sin(elapsed * 1.4) * 0.07;
+        // Balok bergeser posisi halus mengikuti kursor
+        balokGroup.position.x = mouseRef.current.x * 0.35;
+        balokGroup.position.y = mouseRef.current.y * 0.25 + Math.sin(elapsed * 1.4) * 0.07;
+      }
 
       renderer.render(scene, camera);
     };

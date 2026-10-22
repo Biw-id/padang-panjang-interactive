@@ -28,7 +28,8 @@ export const StorytellingHero: React.FC = () => {
     const cubeWrapper = cubeWrapperRef.current;
     if (!container || !track || !cubeWrapper) return;
 
-    // Responsive horizontal travel distance between Right and Left slots
+    // Horizontal travel distance: only on desktop (lg: >= 1024px)
+    // On mobile (< 1024px): stays centered at 0 (always at bottom)
     const getDeltaX = () => {
       if (window.innerWidth < 1024) return 0;
       return -(track.clientWidth - cubeWrapper.clientWidth);
@@ -46,11 +47,11 @@ export const StorytellingHero: React.FC = () => {
       }
 
       const deltaX = getDeltaX();
-      // Kisah 1 & 3: Balok di KANAN (x: 0)
-      // Kisah 2 & 4: Balok di KIRI (x: deltaX)
+      // On desktop: Kisah 1 & 3: Balok di KANAN (x: 0); Kisah 2 & 4: Balok di KIRI (x: deltaX)
+      // On mobile: deltaX is 0, balok stays centered at bottom
       const targetX = newStage === 2 || newStage === 4 ? deltaX : 0;
 
-      // 1. Smooth glide transition of the 3D Balok (fixed duration, NOT dragged by scroll)
+      // 1. Smooth glide transition of the 3D Balok
       gsap.to(cubeWrapper, {
         x: targetX,
         duration: 0.85,
@@ -74,13 +75,13 @@ export const StorytellingHero: React.FC = () => {
             panel,
             {
               opacity: 0,
-              y: newStage > prevStage ? 28 : -28,
+              y: newStage > prevStage ? 20 : -20,
               pointerEvents: 'none',
             },
             {
               opacity: 1,
               y: 0,
-              duration: 0.75,
+              duration: 0.7,
               delay: 0.15,
               ease: 'power2.out',
               pointerEvents: 'auto',
@@ -90,7 +91,7 @@ export const StorytellingHero: React.FC = () => {
         } else if (panelStage === prevStage) {
           gsap.to(panel, {
             opacity: 0,
-            y: newStage > prevStage ? -24 : 24,
+            y: newStage > prevStage ? -20 : 20,
             duration: 0.45,
             ease: 'power2.in',
             pointerEvents: 'none',
@@ -104,14 +105,12 @@ export const StorytellingHero: React.FC = () => {
 
     const ctx = gsap.context(() => {
       // PINNED SCROLL WITH DISCRETE SNAP THRESHOLDS (NO SCRUB)
-      // Transisi antar stage tidak mengikuti gerakan scroll, melainkan snap pas udah mentok threshold
       ScrollTrigger.create({
         trigger: container,
         start: 'top top',
         end: '+=320%',
         pin: true,
         anticipatePin: 1,
-        // Snap directly to the 4 discrete stage plateaus
         snap: {
           snapTo: [0, 0.333, 0.666, 1.0],
           duration: { min: 0.35, max: 0.65 },
@@ -122,7 +121,6 @@ export const StorytellingHero: React.FC = () => {
           const p = self.progress;
           let target = 1;
 
-          // Thresholds: Only switch stage once user scrolls past the threshold ('mentok')
           if (p < 0.18) {
             target = 1;
           } else if (p < 0.50) {
@@ -153,130 +151,135 @@ export const StorytellingHero: React.FC = () => {
       <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
 
       {/* Main Content Area */}
-      <div className="relative z-10 max-w-7xl w-full mx-auto px-6 sm:px-12 h-full flex items-center">
-        <div ref={trackRef} className="relative w-full h-[580px] lg:h-[640px] flex items-center">
+      <div className="relative z-10 max-w-7xl w-full mx-auto px-4 sm:px-8 lg:px-12 h-full flex items-center">
+        <div ref={trackRef} className="relative w-full h-full max-h-[820px] flex items-center">
           
           {/* ========================================================= */}
-          {/* LEFT COLUMN TEXT SLOT (Stage 1 & Stage 3) */}
+          {/* LEFT COLUMN / MOBILE TOP TEXT SLOT (Stage 1 & Stage 3) */}
+          {/* Mobile: Always at TOP (top-16 sm:top-20) */}
+          {/* Desktop: Centered on Left (lg:inset-y-0 lg:left-0) */}
           {/* ========================================================= */}
-          <div className="absolute left-0 inset-y-0 w-full lg:w-[46%] flex items-center">
-            {/* STAGE 1: Opening Landscape (Left Text Column) */}
+          <div className="absolute top-16 sm:top-20 lg:top-0 lg:inset-y-0 left-0 w-full lg:w-[46%] flex items-start lg:items-center">
+            {/* STAGE 1: Opening Landscape (Left Text Column on Desktop, Top on Mobile) */}
             <div
               ref={stage1TextRef}
-              className="absolute inset-x-0 flex flex-col justify-center pointer-events-auto"
+              className="w-full flex flex-col justify-start lg:justify-center pointer-events-auto"
             >
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-marawa-sirah/20 border border-marawa-sirah/40 text-marawa-emas font-tech-mono text-xs uppercase tracking-widest mb-6 w-fit">
-                <Sparkles className="w-3.5 h-3.5" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-marawa-sirah/20 border border-marawa-sirah/40 text-marawa-emas font-tech-mono text-[10px] sm:text-xs uppercase tracking-widest mb-3 sm:mb-5 w-fit">
+                <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 <span>KOTA DINGIN BERSEJARAH // 01</span>
               </div>
-              <h1 className="font-editorial text-4xl sm:text-6xl lg:text-7xl uppercase tracking-tighter leading-none mb-6 text-white drop-shadow-2xl">
+              <h1 className="font-editorial text-2xl sm:text-4xl lg:text-6xl xl:text-7xl uppercase tracking-tighter leading-tight sm:leading-none mb-3 sm:mb-5 text-white drop-shadow-2xl">
                 {hero.headline}
               </h1>
-              <p className="font-tech-mono text-xs sm:text-sm uppercase tracking-wider text-kabut-300 leading-relaxed mb-6 max-w-lg">
+              <p className="font-tech-mono text-[11px] sm:text-sm uppercase tracking-wider text-kabut-300 leading-relaxed mb-4 sm:mb-6 max-w-lg line-clamp-3 sm:line-clamp-none">
                 Terletak di lembah subur nan sejuk pada ketinggian 650–850 mdpl, dipeluk erat oleh Gunung Singgalang, Marapi, dan Tandikat.
               </p>
-              <div className="flex flex-wrap items-center gap-3 text-xs font-tech-mono text-kabut-400">
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5">
-                  <Compass className="w-3.5 h-3.5 text-marawa-emas" />
-                  <span>SUHU 17°C–24°C • TIGA GUNUNG</span>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs font-tech-mono text-kabut-400">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/5">
+                  <Compass className="w-3 h-3 text-marawa-emas" />
+                  <span>SUHU 17°C–24°C</span>
                 </div>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-marawa-emas/10 border border-marawa-emas/20 text-marawa-emas">
-                  <span>BALOK 3D TEPI TUMPUL: PANORAMA GUNUNG</span>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-marawa-emas/10 border border-marawa-emas/20 text-marawa-emas">
+                  <span>PANORAMA GUNUNG</span>
                 </div>
               </div>
             </div>
 
-            {/* STAGE 3: Adat Basandi Syarak (Left Text Column, Cube is on Right) */}
+            {/* STAGE 3: Adat Basandi Syarak (Left Text Column on Desktop, Top on Mobile) */}
             <div
               ref={stage3TextRef}
-              className="absolute inset-x-0 flex flex-col justify-center opacity-0 pointer-events-none"
+              className="w-full flex flex-col justify-start lg:justify-center opacity-0 pointer-events-none"
             >
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sejuk-600/20 border border-sejuk-600/40 text-sejuk-400 font-tech-mono text-xs uppercase tracking-widest mb-6 w-fit">
-                <Shield className="w-3.5 h-3.5" />
-                <span>LANDASAN MORAL & SERAMBI MEKAH // 03</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sejuk-600/20 border border-sejuk-600/40 text-sejuk-400 font-tech-mono text-[10px] sm:text-xs uppercase tracking-widest mb-3 sm:mb-5 w-fit">
+                <Shield className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span>LANDASAN MORAL // 03</span>
               </div>
-              <h2 className="font-editorial text-4xl sm:text-6xl uppercase tracking-tight leading-tight mb-6 text-white">
+              <h2 className="font-editorial text-2xl sm:text-4xl lg:text-5xl xl:text-6xl uppercase tracking-tight leading-tight mb-3 sm:mb-5 text-white">
                 Adat Basandi Syarak, Syarak Basandi Kitabullah
               </h2>
-              <p className="font-tech-mono text-xs sm:text-sm uppercase tracking-wider text-kabut-300 leading-relaxed mb-6 max-w-lg">
-                Motto Resmi Kota: <span className="text-marawa-emas font-bold">"Bermarwah dan Bermartabat"</span> — Menjadi pusat pendidikan Islam tertua dengan lahirnya perguruan Sumatera Thawalib dan Diniyyah Puteri.
+              <p className="font-tech-mono text-[11px] sm:text-sm uppercase tracking-wider text-kabut-300 leading-relaxed mb-4 sm:mb-6 max-w-lg line-clamp-3 sm:line-clamp-none">
+                Motto Resmi Kota: <span className="text-marawa-emas font-bold">"Bermarwah dan Bermartabat"</span> — Menjaga marwah peradaban Islam di bumi Minangkabau.
               </p>
-              <div className="flex flex-wrap items-center gap-3 text-xs font-tech-mono">
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 text-kabut-400">
-                  <BookOpen className="w-3.5 h-3.5 text-sejuk-400" />
-                  <span>SERAMBI MEKAH MINANGKABAU</span>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs font-tech-mono">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/5 text-kabut-400">
+                  <BookOpen className="w-3 h-3 text-sejuk-400" />
+                  <span>SERAMBI MEKAH</span>
                 </div>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sejuk-400/10 border border-sejuk-400/20 text-sejuk-400">
-                  <span>BALOK 3D TEPI TUMPUL: GERBANG KOTA</span>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sejuk-400/10 border border-sejuk-400/20 text-sejuk-400">
+                  <span>GERBANG KOTA BERMARWAH</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* ========================================================= */}
-          {/* RIGHT COLUMN TEXT SLOT (Stage 2 & Stage 4) */}
+          {/* RIGHT COLUMN / MOBILE TOP TEXT SLOT (Stage 2 & Stage 4) */}
+          {/* Mobile: Always at TOP (top-16 sm:top-20, exactly overlapping slot 1) */}
+          {/* Desktop: Centered on Right (lg:inset-y-0 lg:right-0) */}
           {/* ========================================================= */}
-          <div className="absolute right-0 inset-y-0 w-full lg:w-[46%] flex items-center">
-            {/* STAGE 2: PDIKM & Sejarah Lembah (Right Text Column, Cube is on Left) */}
+          <div className="absolute top-16 sm:top-20 lg:top-0 lg:inset-y-0 left-0 lg:left-auto lg:right-0 w-full lg:w-[46%] flex items-start lg:items-center">
+            {/* STAGE 2: PDIKM & Sejarah Lembah */}
             <div
               ref={stage2TextRef}
-              className="absolute inset-x-0 flex flex-col justify-center opacity-0 pointer-events-none"
+              className="w-full flex flex-col justify-start lg:justify-center opacity-0 pointer-events-none"
             >
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-marawa-emas/20 border border-marawa-emas/40 text-marawa-emas font-tech-mono text-xs uppercase tracking-widest mb-6 w-fit">
-                <Sparkles className="w-3.5 h-3.5" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-marawa-emas/20 border border-marawa-emas/40 text-marawa-emas font-tech-mono text-[10px] sm:text-xs uppercase tracking-widest mb-3 sm:mb-5 w-fit">
+                <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 <span>FILOSOFI & DOKUMENTASI BUDAYA // 02</span>
               </div>
-              <h2 className="font-editorial text-4xl sm:text-6xl uppercase tracking-tight leading-tight mb-6 text-white">
+              <h2 className="font-editorial text-2xl sm:text-4xl lg:text-5xl xl:text-6xl uppercase tracking-tight leading-tight mb-3 sm:mb-5 text-white">
                 Kala Sejarah, Dinginnya Kabut, & Marwah Berpadu
               </h2>
-              <p className="font-tech-mono text-xs sm:text-sm uppercase tracking-wider text-kabut-300 leading-relaxed mb-6 max-w-lg">
+              <p className="font-tech-mono text-[11px] sm:text-sm uppercase tracking-wider text-kabut-300 leading-relaxed mb-4 sm:mb-6 max-w-lg line-clamp-3 sm:line-clamp-none">
                 {hero.description}
               </p>
-              <div className="flex flex-wrap items-center gap-3 text-xs font-tech-mono">
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 text-kabut-400">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs font-tech-mono">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/5 text-kabut-400">
                   <span className="w-2 h-2 rounded-full bg-marawa-emas animate-ping" />
                   <span>ARSIP PERADABAN MINANG</span>
                 </div>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-marawa-emas/10 border border-marawa-emas/20 text-marawa-emas">
-                  <span>BALOK 3D TEPI TUMPUL: RUMAH GADANG PDIKM</span>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-marawa-emas/10 border border-marawa-emas/20 text-marawa-emas">
+                  <span>RUMAH GADANG PDIKM</span>
                 </div>
               </div>
             </div>
 
-            {/* STAGE 4: Jembatan Kembar & Simpul Perlintasan (Right Text Column, Cube is on Left) */}
+            {/* STAGE 4: Jembatan Kembar & Simpul Perlintasan */}
             <div
               ref={stage4TextRef}
-              className="absolute inset-x-0 flex flex-col justify-center opacity-0 pointer-events-none"
+              className="w-full flex flex-col justify-start lg:justify-center opacity-0 pointer-events-none"
             >
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-marawa-sirah/20 border border-marawa-sirah/40 text-marawa-sirah font-tech-mono text-xs uppercase tracking-widest mb-6 w-fit">
-                <Train className="w-3.5 h-3.5" />
-                <span>SIMPUL PERLINTASAN & WARISAN DUNIA // 04</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-marawa-sirah/20 border border-marawa-sirah/40 text-marawa-sirah font-tech-mono text-[10px] sm:text-xs uppercase tracking-widest mb-3 sm:mb-5 w-fit">
+                <Train className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span>SIMPUL PERLINTASAN // 04</span>
               </div>
-              <h2 className="font-editorial text-4xl sm:text-6xl uppercase tracking-tight leading-tight mb-6 text-white">
+              <h2 className="font-editorial text-2xl sm:text-4xl lg:text-5xl xl:text-6xl uppercase tracking-tight leading-tight mb-3 sm:mb-5 text-white">
                 Pintu Gerbang Antara Darek dan Rantau
               </h2>
-              <p className="font-tech-mono text-xs sm:text-sm uppercase tracking-wider text-kabut-300 leading-relaxed mb-6 max-w-lg">
-                Simpul vital yang menghubungkan pedalaman dan pesisir sejak berabad lampau, diapit jalur rel kereta api bergigi legendaris warisan dunia UNESCO.
+              <p className="font-tech-mono text-[11px] sm:text-sm uppercase tracking-wider text-kabut-300 leading-relaxed mb-4 sm:mb-6 max-w-lg line-clamp-3 sm:line-clamp-none">
+                Simpul vital penghubung pedalaman dan pesisir sejak berabad lampau, diapit jalur rel kereta api bergigi warisan dunia UNESCO.
               </p>
-              <div className="flex flex-wrap items-center gap-3 text-xs font-tech-mono">
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 text-kabut-400">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs font-tech-mono">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/5 text-kabut-400">
                   <span className="w-2 h-2 rounded-full bg-marawa-sirah animate-pulse" />
                   <span>JALUR REL BERGIGI UNESCO</span>
                 </div>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-marawa-sirah/10 border border-marawa-sirah/20 text-marawa-sirah">
-                  <span>BALOK 3D TEPI TUMPUL: JEMBATAN KEMBAR SILAING</span>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-marawa-sirah/10 border border-marawa-sirah/20 text-marawa-sirah">
+                  <span>JEMBATAN KEMBAR SILAING</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* ========================================================= */}
-          {/* 3D BALOK CONTAINER (UKURAN DIPERBESAR & TEPI TUMPUL) */}
-          {/* Alternates strictly: Stage 1 Right -> Stage 2 Left -> Stage 3 Right -> Stage 4 Left */}
+          {/* 3D BALOK CONTAINER */}
+          {/* Mobile: ALWAYS at BOTTOM (bottom-16 sm:bottom-20), centered (left-1/2 -translate-x-1/2) */}
+          {/* Desktop: Vertically centered (lg:top-1/2 lg:-translate-y-1/2), alternating Right/Left */}
           {/* ========================================================= */}
           <div
             ref={cubeWrapperRef}
-            className="absolute top-1/2 -translate-y-1/2 right-0 w-[350px] h-[225px] sm:w-[500px] sm:h-[315px] lg:w-[640px] lg:h-[400px] xl:w-[700px] xl:h-[440px] z-20 will-change-transform flex items-center justify-center pointer-events-none"
+            className="absolute bottom-16 sm:bottom-20 lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2 left-1/2 -translate-x-1/2 lg:left-auto lg:translate-x-0 lg:right-0 w-[290px] h-[185px] sm:w-[400px] sm:h-[250px] lg:w-[640px] lg:h-[400px] xl:w-[700px] xl:h-[440px] z-20 will-change-transform flex items-center justify-center pointer-events-none"
           >
             <StoryCube3D
               stage={activeStage}
@@ -288,16 +291,16 @@ export const StorytellingHero: React.FC = () => {
       </div>
 
       {/* Stage Indicator HUD & Scroll Hint at Bottom */}
-      <div className="absolute left-6 sm:left-12 bottom-8 z-30 flex items-center gap-4 pointer-events-none">
+      <div className="absolute left-4 sm:left-12 bottom-4 sm:bottom-8 z-30 flex items-center gap-3 sm:gap-4 pointer-events-none">
         <span
           ref={counterRef}
-          className="font-tech-mono text-xs sm:text-sm tracking-widest text-marawa-emas bg-black/60 px-3.5 py-1.5 rounded-full border border-white/10 backdrop-blur-md"
+          className="font-tech-mono text-[11px] sm:text-sm tracking-widest text-marawa-emas bg-black/70 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full border border-white/10 backdrop-blur-md"
         >
           01 / 04
         </span>
-        <div className="hidden sm:flex items-center gap-2 text-[10px] font-tech-mono uppercase tracking-wider text-kabut-400">
-          <span>SCROLL SAMPAI MENTOK UNTUK SNAP KISAH BERIKUTNYA</span>
-          <ChevronDown className="w-3.5 h-3.5 animate-bounce" />
+        <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-tech-mono uppercase tracking-wider text-kabut-400">
+          <span>GULIR SAMPAI MENTOK UNTUK SNAP</span>
+          <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-bounce" />
         </div>
       </div>
     </div>
