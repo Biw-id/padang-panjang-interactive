@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLenis } from './hooks/useLenis';
 import { useAudioEngine } from './hooks/useAudioEngine';
 import { useTheme } from './hooks/useTheme';
@@ -8,6 +8,7 @@ import { AudioGateModal } from './components/audio/AudioGateModal';
 import { HeaderHUD } from './components/hud/HeaderHUD';
 import { SettingsDrawer } from './components/hud/SettingsDrawer';
 import { CustomScrollbar } from './components/hud/CustomScrollbar';
+import { BackToTopButton } from './components/ui/BackToTopButton';
 
 import { StorytellingHero } from './components/sections/StorytellingHero';
 import { QuickStatsHUD } from './components/sections/QuickStatsHUD';
@@ -36,6 +37,14 @@ export const App: React.FC = () => {
 
   const { scrollTo, scrollProgress } = useLenis();
 
+  // Reset scroll to absolute top immediately on page mount / reload
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+  }, []);
+
   const handleEnterExperience = (withAudio: boolean) => {
     setHasEntered(true);
     if (withAudio) {
@@ -53,7 +62,8 @@ export const App: React.FC = () => {
   };
 
   const handleScrollToTop = () => {
-    scrollTo(0, { duration: 2.0 });
+    playClick();
+    scrollTo(0, { duration: 1.8 });
   };
 
   return (
@@ -61,7 +71,7 @@ export const App: React.FC = () => {
       {/* Onboarding Audio & Preloader Gate */}
       {!hasEntered && <AudioGateModal onEnter={handleEnterExperience} />}
 
-      {/* 3D WebGL Background Canvas (Procedural Mountains & Cold Fog Particles) */}
+      {/* 3D WebGL Background Canvas (Clean Procedural Mountains, Stars, & Cold Fog Mist) */}
       <MountainMistScene
         theme={theme}
         graphicQuality={graphicQuality}
@@ -83,6 +93,12 @@ export const App: React.FC = () => {
       <CustomScrollbar
         scrollProgress={scrollProgress}
         onScrollToRatio={handleScrollToRatio}
+      />
+
+      {/* Floating Circular Back to Top Button */}
+      <BackToTopButton
+        onScrollToTop={handleScrollToTop}
+        scrollProgress={scrollProgress}
       />
 
       {/* Settings Modal Drawer */}
@@ -115,7 +131,7 @@ export const App: React.FC = () => {
         {/* Section 05: Culture & Traditions Dynamic Showcase */}
         <CultureShowcase />
 
-        {/* Section 06: Gastronomy Haven (Interactive 3D Steaming Culinary Pedestal) */}
+        {/* Section 06: Gastronomy Haven (Authentic Minang Culinary Spotlight) */}
         <GastronomyHaven />
 
         {/* Section 07: Intellectuals Hall of Fame (Tokoh & Pendidikan) */}
