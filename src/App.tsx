@@ -8,7 +8,6 @@ import { AudioGateModal } from './components/audio/AudioGateModal';
 import { HeaderHUD } from './components/hud/HeaderHUD';
 import { SettingsDrawer } from './components/hud/SettingsDrawer';
 import { CustomScrollbar } from './components/hud/CustomScrollbar';
-import { CustomCursor } from './components/ui/CustomCursor';
 
 import { StorytellingHero } from './components/sections/StorytellingHero';
 import { QuickStatsHUD } from './components/sections/QuickStatsHUD';
@@ -22,8 +21,6 @@ import { FooterNextReveal } from './components/sections/FooterNextReveal';
 export const App: React.FC = () => {
   const [hasEntered, setHasEntered] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isHovering3D, setIsHovering3D] = useState(false);
-  const [isDragging3D, setIsDragging3D] = useState(false);
 
   const { theme, toggleTheme, graphicQuality, setGraphicQuality } = useTheme();
   const {
@@ -60,22 +57,14 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-marawa-itam text-kabut-50 selection:bg-marawa-sirah selection:text-white">
-      {/* Custom Adaptive Magnetic Cursor */}
-      <CustomCursor
-        isHovering3D={isHovering3D}
-        isDragging3D={isDragging3D}
-      />
-
+    <div className="relative min-h-screen bg-marawa-itam text-kabut-50 selection:bg-marawa-sirah selection:text-white cursor-default">
       {/* Onboarding Audio & Preloader Gate */}
       {!hasEntered && <AudioGateModal onEnter={handleEnterExperience} />}
 
-      {/* 3D WebGL Background Canvas (Interactive 360° Gonjong Centerpiece + Mist) */}
+      {/* 3D WebGL Background Canvas (Procedural Mountains & Cold Fog Particles) */}
       <MountainMistScene
         theme={theme}
         graphicQuality={graphicQuality}
-        onHover3DChange={setIsHovering3D}
-        onDragStateChange={setIsDragging3D}
       />
 
       {/* Fixed Header HUD Navigation & Controls */}
@@ -111,13 +100,13 @@ export const App: React.FC = () => {
 
       {/* Main Content Flow */}
       <main className="relative z-10 w-full">
-        {/* Section 01: 4-Stage Pinned Scrollytelling Hero */}
+        {/* Section 01: Hero 3D Story Cube & Asymmetric Narrative Stages */}
         <StorytellingHero />
 
         {/* Section 02: Quick Stats Geospasial & Iklim */}
         <QuickStatsHUD />
 
-        {/* Section 03: Heritage Rack Railway (Rel Gerigi 1887) */}
+        {/* Section 03: Heritage Rack Railway (Interactive 3D Cogwheel 1887) */}
         <HeritageRackRailway />
 
         {/* Section 04: Destinations Showcase & Lightbox */}
@@ -126,7 +115,7 @@ export const App: React.FC = () => {
         {/* Section 05: Culture & Traditions Dynamic Showcase */}
         <CultureShowcase />
 
-        {/* Section 06: Gastronomy Haven (Surga Kuliner Dingin) */}
+        {/* Section 06: Gastronomy Haven (Interactive 3D Steaming Culinary Pedestal) */}
         <GastronomyHaven />
 
         {/* Section 07: Intellectuals Hall of Fame (Tokoh & Pendidikan) */}

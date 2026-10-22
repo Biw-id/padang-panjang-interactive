@@ -1,6 +1,7 @@
 import React from 'react';
-import { Train, Clock, MapPin, Archive } from 'lucide-react';
+import { Train, Clock, MapPin, Archive, Cog } from 'lucide-react';
 import { siteContent } from '../../data/site_content';
+import { RackRailwayGear3D } from '../canvas/RackRailwayGear3D';
 
 export const HeritageRackRailway: React.FC = () => {
   const { heritageAndHistory } = siteContent;
@@ -8,21 +9,38 @@ export const HeritageRackRailway: React.FC = () => {
   return (
     <section id="sejarah" className="relative z-10 py-28 px-4 sm:px-8 border-b border-white/5 bg-marawa-itam">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="max-w-3xl mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-marawa-sirah/10 border border-marawa-sirah/30 text-marawa-sirah font-tech-mono text-[11px] uppercase tracking-ultra mb-4">
-            <Train className="w-3.5 h-3.5" />
-            <span>JALUR REL GERIGI // 1887 - 1891</span>
+        {/* Header with Integrated 3D Cogwheel Element */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center mb-16">
+          <div className="lg:col-span-8">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-marawa-sirah/10 border border-marawa-sirah/30 text-marawa-sirah font-tech-mono text-[11px] uppercase tracking-ultra mb-4">
+              <Train className="w-3.5 h-3.5" />
+              <span>JALUR REL GERIGI // 1887 - 1891</span>
+            </div>
+            <h2 className="font-editorial text-4xl sm:text-6xl uppercase tracking-tight text-white mb-4">
+              {heritageAndHistory.sectionTitle}
+            </h2>
+            <p className="font-tech-mono text-xs sm:text-sm uppercase tracking-wider text-marawa-emas mb-4">
+              {heritageAndHistory.sectionSubtitle}
+            </p>
+            <p className="font-sans text-sm sm:text-base text-kabut-300 leading-relaxed max-w-2xl">
+              {heritageAndHistory.description}
+            </p>
           </div>
-          <h2 className="font-editorial text-4xl sm:text-6xl uppercase tracking-tight text-white mb-4">
-            {heritageAndHistory.sectionTitle}
-          </h2>
-          <p className="font-tech-mono text-xs sm:text-sm uppercase tracking-wider text-marawa-emas mb-6">
-            {heritageAndHistory.sectionSubtitle}
-          </p>
-          <p className="font-sans text-sm sm:text-base text-kabut-300 leading-relaxed">
-            {heritageAndHistory.description}
-          </p>
+
+          {/* Interactive 3D Cogwheel Model */}
+          <div className="lg:col-span-4 flex flex-col items-center justify-center p-6 rounded-3xl glass-panel border border-white/10 relative group">
+            <div className="w-56 h-56 flex items-center justify-center">
+              <RackRailwayGear3D className="w-full h-full" />
+            </div>
+            <div className="mt-2 text-center">
+              <span className="font-tech-mono text-[10px] uppercase tracking-widest text-marawa-emas block">
+                ✦ 3D MEKANIKAL REL GERIGI 1887 ✦
+              </span>
+              <span className="font-tech-mono text-[9px] uppercase tracking-wider text-kabut-500 block">
+                BERPUTAR MENGIKUTI SCROLL & KURSOR
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Archival Media Gallery (3-Card Layout) */}
