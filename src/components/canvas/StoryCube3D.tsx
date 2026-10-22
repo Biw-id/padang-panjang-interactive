@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import gsap from 'gsap';
 
 interface StoryCube3DProps {
@@ -56,13 +57,13 @@ export const StoryCube3D: React.FC<StoryCube3DProps> = ({ stage, className = '' 
     const mount = mountRef.current;
     if (!mount) return;
 
-    const width = mount.clientWidth || 560;
-    const height = mount.clientHeight || 350;
+    const width = mount.clientWidth || 650;
+    const height = mount.clientHeight || 410;
 
     // 1. Scene, Camera, Renderer
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-    camera.position.set(0, 0, 7.8);
+    camera.position.set(0, 0, 7.2);
 
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
@@ -72,7 +73,7 @@ export const StoryCube3D: React.FC<StoryCube3DProps> = ({ stage, className = '' 
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(width, height);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMappingExposure = 1.15;
     mount.innerHTML = '';
     mount.appendChild(renderer.domElement);
 
@@ -99,13 +100,13 @@ export const StoryCube3D: React.FC<StoryCube3DProps> = ({ stage, className = '' 
     // Sisa 5 sisi (Right, Left, Top, Bottom, Back) abu-abu solid matte.
     const greySideMaterial = new THREE.MeshStandardMaterial({
       color: 0x222630, // Solid matte slate graphite
-      roughness: 0.65,
-      metalness: 0.15,
+      roughness: 0.6,
+      metalness: 0.2,
     });
 
     const frontMaterial = new THREE.MeshStandardMaterial({
       map: texturesRef.current[stage - 1],
-      roughness: 0.25,
+      roughness: 0.22,
       metalness: 0.05,
     });
     frontMatRef.current = frontMaterial;
@@ -126,33 +127,32 @@ export const StoryCube3D: React.FC<StoryCube3DProps> = ({ stage, className = '' 
       greySideMaterial, // Back (abu-abu)
     ];
 
-    // 4. BALOK GEOMETRY (Bentuk Balok 16:10 aspect ratio: lebar 5.2, tinggi 3.25, tebal 0.45)
+    // 4. BALOK GEOMETRY DENGAN TEPI TUMPUL (RoundedBoxGeometry)
+    // Dimensi diperbesar: lebar 6.0, tinggi 3.75, tebal 0.55
+    // Radius tumpul: 0.16 dengan 6 bevel segments
     const balokGroup = new THREE.Group();
-    const balokWidth = 5.2;
-    const balokHeight = 3.25;
-    const balokDepth = 0.45;
+    const balokWidth = 6.0;
+    const balokHeight = 3.75;
+    const balokDepth = 0.55;
+    const bevelRadius = 0.16;
+    const bevelSegments = 6;
 
-    const geometry = new THREE.BoxGeometry(balokWidth, balokHeight, balokDepth);
+    const geometry = new RoundedBoxGeometry(
+      balokWidth,
+      balokHeight,
+      balokDepth,
+      bevelSegments,
+      bevelRadius
+    );
     const balokMesh = new THREE.Mesh(geometry, materials);
     balokGroup.add(balokMesh);
-
-    // Glowing subtle metallic edge wireframe (Marawa Gold accent)
-    const edges = new THREE.EdgesGeometry(geometry);
-    const edgeMat = new THREE.LineBasicMaterial({
-      color: 0xF59E0B, // Marawa Gold
-      linewidth: 1.5,
-      transparent: true,
-      opacity: 0.55,
-    });
-    const edgeLines = new THREE.LineSegments(edges, edgeMat);
-    balokGroup.add(edgeLines);
 
     // Subtle soft back shadow plate behind the balok
     const backShadowGeo = new THREE.PlaneGeometry(balokWidth * 1.05, balokHeight * 1.05);
     const backShadowMat = new THREE.MeshBasicMaterial({
       color: 0xDC2626, // Crimson glow aura
       transparent: true,
-      opacity: 0.12,
+      opacity: 0.14,
     });
     const backShadow = new THREE.Mesh(backShadowGeo, backShadowMat);
     backShadow.position.z = -balokDepth / 2 - 0.06;
@@ -160,21 +160,24 @@ export const StoryCube3D: React.FC<StoryCube3DProps> = ({ stage, className = '' 
 
     scene.add(balokGroup);
 
-    // 5. Lighting Setup
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
+    // 5. Lighting Setup (Accentuates the rounded beveled edges)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 2.0);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xfff8ee, 2.0);
+    const keyLight = new THREE.DirectionalLight(0xfff8ee, 2.4);
     keyLight.position.set(5, 6, 7);
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0xF59E0B, 1.0);
+    const rimLight = new THREE.DirectionalLight(0xF59E0B, 1.6); // Marawa Gold rim
     rimLight.position.set(-6, -3, 4);
     scene.add(rimLight);
 
+    const topBevelLight = new THREE.DirectionalLight(0xffffff, 1.2); // Highlights top rounded bevel
+    topBevelLight.position.set(0, 6, 3);
+    scene.add(topBevelLight);
+
     // 6. CURSOR TRACKING (HANYA MENGIKUTI CURSOR, TIDAK BISA DI-DRAG)
     const onMouseMove = (e: MouseEvent) => {
-      // Calculate normalized mouse coordinates (-1 to 1) relative to window
       const normX = (e.clientX / window.innerWidth) * 2 - 1;
       const normY = -(e.clientY / window.innerHeight) * 2 + 1;
 
@@ -238,8 +241,6 @@ export const StoryCube3D: React.FC<StoryCube3DProps> = ({ stage, className = '' 
       cancelAnimationFrame(animId);
       renderer.dispose();
       geometry.dispose();
-      edges.dispose();
-      edgeMat.dispose();
       backShadowGeo.dispose();
       backShadowMat.dispose();
       greySideMaterial.dispose();

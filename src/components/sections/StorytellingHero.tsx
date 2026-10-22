@@ -19,6 +19,7 @@ export const StorytellingHero: React.FC = () => {
   const stage4TextRef = useRef<HTMLDivElement>(null);
 
   const [activeStage, setActiveStage] = useState<number>(1);
+  const currentStageRef = useRef<number>(1);
   const { hero } = siteContent;
 
   useEffect(() => {
@@ -27,132 +28,116 @@ export const StorytellingHero: React.FC = () => {
     const cubeWrapper = cubeWrapperRef.current;
     if (!container || !track || !cubeWrapper) return;
 
-    // Calculate exact responsive translation between Right and Left slots
+    // Responsive horizontal travel distance between Right and Left slots
     const getDeltaX = () => {
       if (window.innerWidth < 1024) return 0;
       return -(track.clientWidth - cubeWrapper.clientWidth);
     };
 
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: container,
-          start: 'top top',
-          end: '+=380%',
-          pin: true,
-          scrub: 1,
-          anticipatePin: 1,
-          onUpdate: (self) => {
-            const p = self.progress;
-            let current = 1;
-            if (p < 0.28) current = 1;
-            else if (p < 0.58) current = 2;
-            else if (p < 0.84) current = 3;
-            else current = 4;
+    // Discrete transition function (animates independently of scroll ticks)
+    const goToStage = (newStage: number) => {
+      if (newStage === currentStageRef.current) return;
+      const prevStage = currentStageRef.current;
+      currentStageRef.current = newStage;
+      setActiveStage(newStage);
 
-            setActiveStage(current);
-            if (counterRef.current) {
-              counterRef.current.innerText = `0${current} / 04`;
-            }
-          },
-        },
+      if (counterRef.current) {
+        counterRef.current.innerText = `0${newStage} / 04`;
+      }
+
+      const deltaX = getDeltaX();
+      // Kisah 1 & 3: Balok di KANAN (x: 0)
+      // Kisah 2 & 4: Balok di KIRI (x: deltaX)
+      const targetX = newStage === 2 || newStage === 4 ? deltaX : 0;
+
+      // 1. Smooth glide transition of the 3D Balok (fixed duration, NOT dragged by scroll)
+      gsap.to(cubeWrapper, {
+        x: targetX,
+        duration: 0.85,
+        ease: 'power2.inOut',
+        overwrite: 'auto',
       });
 
-      // -----------------------------------------------------------
-      // STAGE 1 (Initial State):
-      // Balok on RIGHT (x: 0) ◄──────► Text 1 on LEFT
-      // -----------------------------------------------------------
+      // 2. Crossfade & slide text panels
+      const textPanels = [
+        stage1TextRef.current,
+        stage2TextRef.current,
+        stage3TextRef.current,
+        stage4TextRef.current,
+      ];
 
-      // Hold Stage 1
-      tl.to({}, { duration: 0.4 });
+      textPanels.forEach((panel, idx) => {
+        if (!panel) return;
+        const panelStage = idx + 1;
+        if (panelStage === newStage) {
+          gsap.fromTo(
+            panel,
+            {
+              opacity: 0,
+              y: newStage > prevStage ? 28 : -28,
+              pointerEvents: 'none',
+            },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.75,
+              delay: 0.15,
+              ease: 'power2.out',
+              pointerEvents: 'auto',
+              overwrite: 'auto',
+            }
+          );
+        } else if (panelStage === prevStage) {
+          gsap.to(panel, {
+            opacity: 0,
+            y: newStage > prevStage ? -24 : 24,
+            duration: 0.45,
+            ease: 'power2.in',
+            pointerEvents: 'none',
+            overwrite: 'auto',
+          });
+        } else {
+          gsap.set(panel, { opacity: 0, pointerEvents: 'none' });
+        }
+      });
+    };
 
-      // TRANSITION 1 -> 2:
-      // Balok glides to LEFT ◄──────► Text 2 fades in on RIGHT
-      tl.to(stage1TextRef.current, {
-        opacity: 0,
-        x: -40,
-        duration: 1.0,
-        ease: 'power2.in',
-        pointerEvents: 'none',
-      })
-      .to(cubeWrapperRef.current, {
-        x: () => getDeltaX(),
-        duration: 1.4,
-        ease: 'power2.inOut',
-      }, '<')
-      .fromTo(stage2TextRef.current, {
-        opacity: 0,
-        x: 40,
-        pointerEvents: 'none',
-      }, {
-        opacity: 1,
-        x: 0,
-        duration: 1.0,
-        ease: 'power2.out',
-        pointerEvents: 'auto',
-      }, '-=0.5');
+    const ctx = gsap.context(() => {
+      // PINNED SCROLL WITH DISCRETE SNAP THRESHOLDS (NO SCRUB)
+      // Transisi antar stage tidak mengikuti gerakan scroll, melainkan snap pas udah mentok threshold
+      ScrollTrigger.create({
+        trigger: container,
+        start: 'top top',
+        end: '+=320%',
+        pin: true,
+        anticipatePin: 1,
+        // Snap directly to the 4 discrete stage plateaus
+        snap: {
+          snapTo: [0, 0.333, 0.666, 1.0],
+          duration: { min: 0.35, max: 0.65 },
+          delay: 0.05,
+          ease: 'power2.inOut',
+        },
+        onUpdate: (self) => {
+          const p = self.progress;
+          let target = 1;
 
-      // Hold Stage 2
-      tl.to({}, { duration: 0.5 });
+          // Thresholds: Only switch stage once user scrolls past the threshold ('mentok')
+          if (p < 0.18) {
+            target = 1;
+          } else if (p < 0.50) {
+            target = 2;
+          } else if (p < 0.82) {
+            target = 3;
+          } else {
+            target = 4;
+          }
 
-      // TRANSITION 2 -> 3:
-      // Balok glides back to RIGHT ◄──────► Text 3 fades in on LEFT
-      tl.to(stage2TextRef.current, {
-        opacity: 0,
-        x: 40,
-        duration: 1.0,
-        ease: 'power2.in',
-        pointerEvents: 'none',
-      })
-      .to(cubeWrapperRef.current, {
-        x: 0,
-        duration: 1.4,
-        ease: 'power2.inOut',
-      }, '<')
-      .fromTo(stage3TextRef.current, {
-        opacity: 0,
-        x: -40,
-        pointerEvents: 'none',
-      }, {
-        opacity: 1,
-        x: 0,
-        duration: 1.0,
-        ease: 'power2.out',
-        pointerEvents: 'auto',
-      }, '-=0.5');
-
-      // Hold Stage 3
-      tl.to({}, { duration: 0.5 });
-
-      // TRANSITION 3 -> 4:
-      // Balok glides to LEFT ◄──────► Text 4 fades in on RIGHT
-      tl.to(stage3TextRef.current, {
-        opacity: 0,
-        x: -40,
-        duration: 1.0,
-        ease: 'power2.in',
-        pointerEvents: 'none',
-      })
-      .to(cubeWrapperRef.current, {
-        x: () => getDeltaX(),
-        duration: 1.4,
-        ease: 'power2.inOut',
-      }, '<')
-      .fromTo(stage4TextRef.current, {
-        opacity: 0,
-        x: 40,
-        pointerEvents: 'none',
-      }, {
-        opacity: 1,
-        x: 0,
-        duration: 1.0,
-        ease: 'power2.out',
-        pointerEvents: 'auto',
-      }, '-=0.5');
-
-      // Hold Stage 4
-      tl.to({}, { duration: 0.5 });
-
+          if (target !== currentStageRef.current) {
+            goToStage(target);
+          }
+        },
+      });
     }, container);
 
     return () => ctx.revert();
@@ -161,7 +146,7 @@ export const StorytellingHero: React.FC = () => {
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-screen overflow-hidden bg-marawa-itam text-white flex items-center justify-center"
+      className="relative w-full h-screen overflow-hidden bg-marawa-itam text-white flex items-center justify-center select-none"
     >
       {/* Background Subtle Gradient & Grid Texture */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-marawa-sirah/10 via-marawa-itam to-marawa-itam pointer-events-none" />
@@ -169,12 +154,12 @@ export const StorytellingHero: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="relative z-10 max-w-7xl w-full mx-auto px-6 sm:px-12 h-full flex items-center">
-        <div ref={trackRef} className="relative w-full h-[540px] flex items-center">
+        <div ref={trackRef} className="relative w-full h-[580px] lg:h-[640px] flex items-center">
           
           {/* ========================================================= */}
           {/* LEFT COLUMN TEXT SLOT (Stage 1 & Stage 3) */}
           {/* ========================================================= */}
-          <div className="absolute left-0 inset-y-0 w-full lg:w-[48%] flex items-center">
+          <div className="absolute left-0 inset-y-0 w-full lg:w-[46%] flex items-center">
             {/* STAGE 1: Opening Landscape (Left Text Column) */}
             <div
               ref={stage1TextRef}
@@ -196,7 +181,7 @@ export const StorytellingHero: React.FC = () => {
                   <span>SUHU 17°C–24°C • TIGA GUNUNG</span>
                 </div>
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-marawa-emas/10 border border-marawa-emas/20 text-marawa-emas">
-                  <span>BALOK 3D DEPAN: PANORAMA GUNUNG</span>
+                  <span>BALOK 3D TEPI TUMPUL: PANORAMA GUNUNG</span>
                 </div>
               </div>
             </div>
@@ -222,7 +207,7 @@ export const StorytellingHero: React.FC = () => {
                   <span>SERAMBI MEKAH MINANGKABAU</span>
                 </div>
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sejuk-400/10 border border-sejuk-400/20 text-sejuk-400">
-                  <span>BALOK 3D DEPAN: GERBANG KOTA</span>
+                  <span>BALOK 3D TEPI TUMPUL: GERBANG KOTA</span>
                 </div>
               </div>
             </div>
@@ -231,7 +216,7 @@ export const StorytellingHero: React.FC = () => {
           {/* ========================================================= */}
           {/* RIGHT COLUMN TEXT SLOT (Stage 2 & Stage 4) */}
           {/* ========================================================= */}
-          <div className="absolute right-0 inset-y-0 w-full lg:w-[48%] flex items-center">
+          <div className="absolute right-0 inset-y-0 w-full lg:w-[46%] flex items-center">
             {/* STAGE 2: PDIKM & Sejarah Lembah (Right Text Column, Cube is on Left) */}
             <div
               ref={stage2TextRef}
@@ -253,7 +238,7 @@ export const StorytellingHero: React.FC = () => {
                   <span>ARSIP PERADABAN MINANG</span>
                 </div>
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-marawa-emas/10 border border-marawa-emas/20 text-marawa-emas">
-                  <span>BALOK 3D DEPAN: RUMAH GADANG PDIKM</span>
+                  <span>BALOK 3D TEPI TUMPUL: RUMAH GADANG PDIKM</span>
                 </div>
               </div>
             </div>
@@ -279,23 +264,23 @@ export const StorytellingHero: React.FC = () => {
                   <span>JALUR REL BERGIGI UNESCO</span>
                 </div>
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-marawa-sirah/10 border border-marawa-sirah/20 text-marawa-sirah">
-                  <span>BALOK 3D DEPAN: JEMBATAN KEMBAR SILAING</span>
+                  <span>BALOK 3D TEPI TUMPUL: JEMBATAN KEMBAR SILAING</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* ========================================================= */}
-          {/* 3D BALOK CONTAINER */}
+          {/* 3D BALOK CONTAINER (UKURAN DIPERBESAR & TEPI TUMPUL) */}
           {/* Alternates strictly: Stage 1 Right -> Stage 2 Left -> Stage 3 Right -> Stage 4 Left */}
           {/* ========================================================= */}
           <div
             ref={cubeWrapperRef}
-            className="absolute top-1/2 -translate-y-1/2 right-0 w-[320px] h-[200px] sm:w-[450px] sm:h-[285px] lg:w-[560px] lg:h-[350px] z-20 will-change-transform flex items-center justify-center pointer-events-none"
+            className="absolute top-1/2 -translate-y-1/2 right-0 w-[350px] h-[225px] sm:w-[500px] sm:h-[315px] lg:w-[640px] lg:h-[400px] xl:w-[700px] xl:h-[440px] z-20 will-change-transform flex items-center justify-center pointer-events-none"
           >
             <StoryCube3D
               stage={activeStage}
-              className="w-full h-full drop-shadow-[0_0_35px_rgba(245,158,11,0.22)]"
+              className="w-full h-full drop-shadow-[0_15px_40px_rgba(0,0,0,0.6)]"
             />
           </div>
 
@@ -311,7 +296,7 @@ export const StorytellingHero: React.FC = () => {
           01 / 04
         </span>
         <div className="hidden sm:flex items-center gap-2 text-[10px] font-tech-mono uppercase tracking-wider text-kabut-400">
-          <span>GULIR UNTUK MEMUTAR KISAH BALOK 3D</span>
+          <span>SCROLL SAMPAI MENTOK UNTUK SNAP KISAH BERIKUTNYA</span>
           <ChevronDown className="w-3.5 h-3.5 animate-bounce" />
         </div>
       </div>
